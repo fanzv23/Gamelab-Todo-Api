@@ -11,7 +11,7 @@ const activityLogSchema = new mongoose.Schema({
     required: true 
   },
   
-  // --- 5 Field Wajib dari Aturan Gamelab ---
+  // Field Wajib 
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   updated_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   archived: { type: Boolean, default: false }
