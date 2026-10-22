@@ -1,22 +1,14 @@
-require('dotenv').config();
-const express = require('express');
-const connectDB = require('./config/db'); // <-- Menarik file db.js
+require("dotenv").config();
+const app = require("./src/app");
+const connectDB = require("./src/config/db");
+const PORT = process.env.PORT || 3000;
 
-const app = express();
-const port = process.env.PORT || 3000;
+async function startServer() {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+  });
+}
 
-// Jalankan koneksi ke database
-connectDB(); // <-- Memanggil fungsinya di sini
-
-// Middleware agar bisa membaca input format JSON
-app.use(express.json());
-
-// Rute tes awal
-app.get('/', (req, res) => {
-  res.send('Server Todo API milik Fanzv sudah berjalan dan siap ngoding!');
-});
-
-// Menjalankan server
-app.listen(port, () => {
-  console.log(`Server berhasil jalan di http://localhost:${port}`);
-});
+startServer();
