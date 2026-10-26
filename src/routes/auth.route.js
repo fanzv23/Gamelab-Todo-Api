@@ -1,9 +1,15 @@
 const express = require("express");
-const authController = require("../controller/auth.controller");
-
 const router = express.Router();
 
-router.post("/register", authController.register);
-router.post("/login", authController.login);
+// Contoh endpoint login sementara untuk tes
+router.post("/login", (req, res) => {
+  res.json({
+    success: true,
+    message: "Endpoint login berhasil diakses",
+    data: {
+      token: "dummy-jwt-token-sementara"
+    }
+  });
+});
 
 module.exports = router;
