@@ -35,8 +35,5 @@ exports.updateTodo = catchAsync(async (req, res, next) => {
 
 exports.deleteTodo = catchAsync(async (req, res, next) => {
   await todoService.deleteTodo(req.params.id, req.user._id);
-  res.status(204).json({
-    success: true,
-    data: null,
-  });
+  res.status(200).json({ success: true, message: "Todo berhasil dihapus" });
 });

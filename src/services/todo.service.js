@@ -10,11 +10,17 @@ async function getTodosByUser(userId) {
 }
 
 async function updateTodo(todoId, userId, updateData) {
-  const todo = await Todo.findOne({ _id: todoId, user: userId });
+  const todo = await Todo.findOne({ _id: todoId, user: userId, archived: false });
   if (!todo) {
     throw new AppError("Todo tidak ditemukan atau kamu tidak memiliki akses", 404);
   }
-  Object.assign(todo, updateData);
+
+  const allowedFields = ["title", "description", "completed", "category"];
+  allowedFields.forEach((field) => {
+    if (updateData[field] !== undefined) todo[field] = updateData[field];
+  });
+  todo.updated_by = userId;
+
   return await todo.save();
 }
 
