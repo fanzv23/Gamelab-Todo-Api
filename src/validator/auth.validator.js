@@ -1,14 +1,12 @@
-const Joi = require("joi");
+const { body } = require("express-validator");
 
-const registerSchema = Joi.object({
-  name: Joi.string().required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-});
+exports.registerValidator = [
+  body("name").trim().notEmpty().withMessage("Nama wajib diisi"),
+  body("email").isEmail().withMessage("Email tidak valid"),
+  body("password").isLength({ min: 6 }).withMessage("Password minimal 6 karakter"),
+];
 
-const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
-});
-
-module.exports = { registerSchema, loginSchema };
+exports.loginValidator = [
+  body("email").isEmail().withMessage("Email tidak valid"),
+  body("password").notEmpty().withMessage("Password wajib diisi"),
+];

@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../model/User");
 const AppError = require("../utils/AppError");
@@ -14,11 +15,13 @@ exports.register = catchAsync(async (req, res, next) => {
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
-    role: req.body.role || "user",
-    created_by: req.body.userId || null,
+    role: "user",
+    created_by: null,
   });
 
   const token = signToken(newUser._id);
+
+  newUser.password = undefined;
 
   res.status(201).json({
     success: true,
