@@ -5,8 +5,8 @@ const AppError = require("../utils/AppError");
 const catchAsync = require("../utils/catchAsync");
 
 const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || "secret_key_sangat_aman", {
-    expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  expiresIn: process.env.JWT_EXPIRES_IN || "1d",
   });
 };
 

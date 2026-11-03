@@ -13,7 +13,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     return next(new AppError("Kamu belum login! Silakan login terlebih dahulu untuk mengakses.", 401));
   }
 
-  const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret_key_sangat_aman");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   const currentUser = await User.findById(decoded.id);
   if (!currentUser) {
