@@ -17,10 +17,35 @@ exports.createTodo = catchAsync(async (req, res, next) => {
 });
 
 exports.getTodos = catchAsync(async (req, res, next) => {
-  const todos = await todoService.getTodosByUser(req.user._id);
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+
+  let completed;
+  if (req.query.completed === "true") completed = true;
+  if (req.query.completed === "false") completed = false;
+
+  const category = req.query.category;
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : undefined;
+  const sort = typeof req.query.sort === "string" ? req.query.sort : undefined;
+
+  const { todos, total } = await todoService.getTodosByUser(req.user._id, {
+    page,
+    limit,
+    completed,
+    category,
+    search,
+    sort,
+  });
+
   res.status(200).json({
     success: true,
     results: todos.length,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
     data: { todos },
   });
 });
