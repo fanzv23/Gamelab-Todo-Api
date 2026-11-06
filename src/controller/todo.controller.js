@@ -1,4 +1,5 @@
 const todoService = require("../services/todo.service");
+const { logActivity } = require("../services/activityLog.service");
 const catchAsync = require("../utils/catchAsync");
 
 exports.createTodo = catchAsync(async (req, res, next) => {
@@ -10,6 +11,14 @@ exports.createTodo = catchAsync(async (req, res, next) => {
     created_by: req.user._id,
   };
   const newTodo = await todoService.createTodo(todoData);
+
+  await logActivity({
+    userId: req.user._id,
+    action: "create",
+    entityId: newTodo._id,
+    description: `Membuat todo "${newTodo.title}"`,
+  });
+
   res.status(201).json({
     success: true,
     data: { todo: newTodo },
@@ -52,6 +61,14 @@ exports.getTodos = catchAsync(async (req, res, next) => {
 
 exports.updateTodo = catchAsync(async (req, res, next) => {
   const updated = await todoService.updateTodo(req.params.id, req.user._id, req.body);
+
+  await logActivity({
+    userId: req.user._id,
+    action: "update",
+    entityId: updated._id,
+    description: `Mengubah todo "${updated.title}"`,
+  });
+
   res.status(200).json({
     success: true,
     data: { todo: updated },
@@ -59,6 +76,14 @@ exports.updateTodo = catchAsync(async (req, res, next) => {
 });
 
 exports.deleteTodo = catchAsync(async (req, res, next) => {
-  await todoService.deleteTodo(req.params.id, req.user._id);
+  const deleted = await todoService.deleteTodo(req.params.id, req.user._id);
+
+  await logActivity({
+    userId: req.user._id,
+    action: "delete",
+    entityId: deleted._id,
+    description: `Menghapus todo "${deleted.title}"`,
+  });
+
   res.status(200).json({ success: true, message: "Todo berhasil dihapus" });
 });
