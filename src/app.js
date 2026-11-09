@@ -3,6 +3,10 @@ const logger = require("./middlewares/logger.middleware");
 const notFound = require("./middlewares/notFound.middleware");
 const errorHandler = require("./middlewares/errorHandler.middleware");
 
+// Import Swagger
+const swaggerUi = require("swagger-ui-express");
+const openapiSpec = require("./docs/openapi");
+
 const authRoutes = require("./routes/auth.routes");
 
 const app = express();
@@ -15,6 +19,9 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.json({ message: "Todo API is running" });
 });
+
+// Dokumentasi API (Swagger UI)
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 // Router
 app.use("/api/auth", authRoutes);
