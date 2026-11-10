@@ -1,18 +1,92 @@
+# Contoh request untuk ekstensi "REST Client" di VS Code.
+# Klik "Send Request" di atas tiap blok. Jalankan dari atas ke bawah.
+# Jangan menulis kata sandi asli atau API Key asli di file ini.
+
+@baseUrl = http://localhost:3000
+@apiKey = ganti_dengan_api_key_dari_env
+
 ### 1. Register
-POST http://localhost:3000/api/auth/register
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-  "name": "Tyo",
-  "email": "tyo@gmail.com",
-  "password": "123456"
+  "name": "Tester",
+  "email": "tester@example.com",
+  "password": "rahasia123"
 }
 
-### 2. Login
-POST http://localhost:3000/api/auth/login
+### 2. Login (token disimpan otomatis ke variabel di bawah)
+# @name login
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "tyo@gmail.com",
-  "password": "123456"
+  "email": "tester@example.com",
+  "password": "rahasia123"
 }
+
+###
+@token = {{login.response.body.token}}
+
+### 3. Buat kategori
+# @name buatKategori
+POST {{baseUrl}}/api/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Kuliah",
+  "description": "Tugas kuliah"
+}
+
+###
+@categoryId = {{buatKategori.response.body.data.category._id}}
+
+### 4. Lihat semua kategori
+GET {{baseUrl}}/api/categories
+Authorization: Bearer {{token}}
+
+### 5. Buat todo
+# @name buatTodo
+POST {{baseUrl}}/api/todos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Belajar Swagger",
+  "description": "Menulis dokumentasi API",
+  "category": "{{categoryId}}"
+}
+
+###
+@todoId = {{buatTodo.response.body.data.todo._id}}
+
+### 6. Daftar todo dengan pagination, filter, sorting, dan search
+GET {{baseUrl}}/api/todos?page=1&limit=5&completed=false&search=belajar&sort=-created_at
+Authorization: Bearer {{token}}
+
+### 7. Ubah todo
+PATCH {{baseUrl}}/api/todos/{{todoId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "Belajar Swagger (revisi)",
+  "completed": true
+}
+
+### 8. Activity log milik sendiri (bisa difilter dengan ?action=create)
+GET {{baseUrl}}/api/logs?page=1&limit=10
+Authorization: Bearer {{token}}
+
+### 9. Hapus todo
+DELETE {{baseUrl}}/api/todos/{{todoId}}
+Authorization: Bearer {{token}}
+
+### 10. Daftar semua user (hanya admin, user biasa mendapat 403)
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{token}}
+
+### 11. Statistik dengan API Key (tanpa token login)
+GET {{baseUrl}}/api/stats
+x-api-key: {{apiKey}}
