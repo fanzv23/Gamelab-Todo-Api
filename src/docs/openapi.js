@@ -27,6 +27,35 @@ const listQuery = [
   { name: "limit", in: "query", description: "Jumlah data per halaman (maksimal 50)", schema: { type: "integer", minimum: 1, maximum: 50, default: 10 } },
 ];
 
+// Dipakai bersama oleh PUT dan PATCH /api/todos/{id}
+const updateTodoOperation = {
+  tags: ["Todos"],
+  summary: "Ubah todo milik sendiri (404 jika todo atau kategori tidak ditemukan)",
+  security: bearer,
+  parameters: [idParam],
+  requestBody: jsonBody({
+    type: "object",
+    properties: {
+      title: { type: "string", example: "Judul baru" },
+      description: { type: "string" },
+      completed: { type: "boolean", example: true },
+      category: { type: "string", description: "ID kategori (harus milik pengguna)" },
+    },
+  }),
+  responses: {
+    200: jsonResponse("Todo berhasil diubah", {
+      type: "object",
+      properties: {
+        success: { type: "boolean", example: true },
+        data: { type: "object", properties: { todo: ref("Todo") } },
+      },
+    }),
+    400: resp("BadRequest"),
+    401: resp("Unauthorized"),
+    404: resp("NotFound"),
+  },
+};
+
 // ====== Spesifikasi API ======
 module.exports = {
   openapi: "3.0.3",
@@ -138,7 +167,7 @@ module.exports = {
           properties: {
             title: { type: "string", maxLength: 100, example: "Belajar Swagger" },
             description: { type: "string", example: "Menulis dokumentasi API" },
-            category: { type: "string", description: "ID kategori", example: "6ae974bc4ed88a7073550e1c" },
+            category: { type: "string", description: "ID kategori (harus milik pengguna)", example: "6ae974bc4ed88a7073550e1c" },
           },
         }),
         responses: {
@@ -151,41 +180,17 @@ module.exports = {
           }),
           400: resp("BadRequest"),
           401: resp("Unauthorized"),
+          404: jsonResponse("Kategori tidak ditemukan atau bukan milik pengguna", ref("Error")),
         },
       },
     },
 
     "/api/todos/{id}": {
-      patch: {
-        tags: ["Todos"],
-        summary: "Ubah todo milik sendiri",
-        security: bearer,
-        parameters: [idParam],
-        requestBody: jsonBody({
-          type: "object",
-          properties: {
-            title: { type: "string", example: "Judul baru" },
-            description: { type: "string" },
-            completed: { type: "boolean", example: true },
-            category: { type: "string", description: "ID kategori" },
-          },
-        }),
-        responses: {
-          200: jsonResponse("Todo berhasil diubah", {
-            type: "object",
-            properties: {
-              success: { type: "boolean", example: true },
-              data: { type: "object", properties: { todo: ref("Todo") } },
-            },
-          }),
-          400: resp("BadRequest"),
-          401: resp("Unauthorized"),
-          404: resp("NotFound"),
-        },
-      },
+      put: updateTodoOperation,
+      patch: updateTodoOperation,
       delete: {
         tags: ["Todos"],
-        summary: "Hapus todo milik sendiri",
+        summary: "Hapus todo milik sendiri (soft delete)",
         security: bearer,
         parameters: [idParam],
         responses: {
@@ -316,6 +321,7 @@ module.exports = {
       get: {
         tags: ["Activity Logs"],
         summary: "Riwayat aktivitas todo (user biasa hanya melihat miliknya, admin melihat semua)",
+        description: "Dapat juga diakses lewat alias /api/activity-logs.",
         security: bearer,
         parameters: [
           ...listQuery,
@@ -430,9 +436,9 @@ module.exports = {
           name: { type: "string", example: "Kuliah" },
           description: { type: "string", example: "Tugas kuliah" },
           created_by: { type: "string" },
+          updated_by: { type: "string" },
           archived: { type: "boolean", example: false },
           created_at: { type: "string", format: "date-time" },
-          updated_by: { type: "string" },
           updated_at: { type: "string", format: "date-time" },
         },
       },

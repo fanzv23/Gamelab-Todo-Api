@@ -325,7 +325,7 @@ npm test
 | Integration | `tests/app.test.js` | server hidup dan route tidak ditemukan |
 | Unit | `tests/unit/middlewares.test.js` | `AppError`, `catchAsync`, `restrictTo`, middleware API Key |
 
-Seluruhnya terdiri dari **41 test**. Semua test memakai **database terpisah bernama `todo_api_test`** pada cluster yang sama dengan `MONGODB_URI`, dan database itu dihapus setelah pengujian selesai, sehingga data asli tidak tersentuh. Test akan berhenti dengan error jika koneksi ternyata bukan ke database test.
+Seluruhnya terdiri dari **45 test**. Semua test memakai **database terpisah bernama `todo_api_test`** pada cluster yang sama dengan `MONGODB_URI`, dan database itu dihapus setelah pengujian selesai, sehingga data asli tidak tersentuh. Test akan berhenti dengan error jika koneksi ternyata bukan ke database test.
 
 ## Membuat Akun Admin
 
