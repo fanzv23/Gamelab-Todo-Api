@@ -21,6 +21,7 @@ router
 
 router
   .route("/:id")
+  .put(updateTodoValidator, validate, todoController.updateTodo)
   .patch(updateTodoValidator, validate, todoController.updateTodo)
   .delete(idValidator, validate, todoController.deleteTodo);
 

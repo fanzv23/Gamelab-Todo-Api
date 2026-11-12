@@ -1,4 +1,5 @@
 const Todo = require("../model/Todo");
+const Category = require("../model/Category");
 const AppError = require("../utils/AppError");
 
 const ALLOWED_SORT_FIELDS = ["created_at", "updated_at", "title", "completed"];
@@ -24,7 +25,20 @@ function buildSort(sort) {
   return sortOption;
 }
 
+// Pastikan kategori ada, belum diarsipkan, dan milik user yang sama
+async function assertCategoryOwned(categoryId, userId) {
+  const category = await Category.findOne({
+    _id: categoryId,
+    created_by: userId,
+    archived: false,
+  });
+  if (!category) {
+    throw new AppError("Kategori tidak ditemukan atau bukan milik kamu", 404);
+  }
+}
+
 async function createTodo(data) {
+  await assertCategoryOwned(data.category, data.user);
   return await Todo.create(data);
 }
 
@@ -60,6 +74,10 @@ async function updateTodo(todoId, userId, updateData) {
     throw new AppError("Todo tidak ditemukan atau kamu tidak memiliki akses", 404);
   }
 
+  if (updateData.category !== undefined) {
+    await assertCategoryOwned(updateData.category, userId);
+  }
+
   const allowedFields = ["title", "description", "completed", "category"];
   allowedFields.forEach((field) => {
     if (updateData[field] !== undefined) todo[field] = updateData[field];
@@ -70,7 +88,11 @@ async function updateTodo(todoId, userId, updateData) {
 }
 
 async function deleteTodo(todoId, userId) {
-  const todo = await Todo.findOneAndDelete({ _id: todoId, user: userId });
+  const todo = await Todo.findOneAndUpdate(
+    { _id: todoId, user: userId, archived: false },
+    { archived: true, updated_by: userId },
+    { new: true }
+  );
   if (!todo) {
     throw new AppError("Todo tidak ditemukan atau kamu tidak memiliki akses", 404);
   }

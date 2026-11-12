@@ -432,6 +432,7 @@ module.exports = {
           created_by: { type: "string" },
           archived: { type: "boolean", example: false },
           created_at: { type: "string", format: "date-time" },
+          updated_by: { type: "string" },
           updated_at: { type: "string", format: "date-time" },
         },
       },

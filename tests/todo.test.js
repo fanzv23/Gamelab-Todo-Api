@@ -189,7 +189,7 @@ describe("Ubah dan hapus todo", () => {
     );
   });
 
-  test("menghapus todo: 200, lalu menghapus lagi: 404", async () => {
+  test("menghapus todo: 200 (soft delete), lalu menghapus lagi: 404", async () => {
     const dibuat = await buatTodo(userA.token, kategoriA, "Akan dihapus");
     const id = dibuat.body.data.todo._id;
 
@@ -198,6 +198,12 @@ describe("Ubah dan hapus todo", () => {
       .set(auth(userA.token));
     expect(hapus.statusCode).toBe(200);
     expect(hapus.body.message).toBe("Todo berhasil dihapus");
+
+    const diDb = await Todo.findById(id);
+    expect(diDb.archived).toBe(true);
+
+    const daftar = await request(app).get("/api/todos").set(auth(userA.token));
+    expect(daftar.body.pagination.total).toBe(0);
 
     const lagi = await request(app)
       .delete(`/api/todos/${id}`)
@@ -222,5 +228,41 @@ describe("Activity log", () => {
     const res = await request(app).get("/api/logs").set(auth(userB.token));
     expect(res.statusCode).toBe(200);
     expect(res.body.pagination.total).toBe(0);
+  });
+
+  test("alias /api/activity-logs bisa diakses user biasa", async () => {
+    await buatTodo(userA.token, kategoriA, "Dicatat");
+
+    const res = await request(app)
+      .get("/api/activity-logs")
+      .set(auth(userA.token));
+    expect(res.statusCode).toBe(200);
+    expect(res.body.pagination.total).toBe(1);
+  });
+});
+
+describe("Validasi kategori pada todo", () => {
+  const kategoriPalsu = "6ae974bc4ed88a7073550e1c";
+
+  test("POST dengan kategori yang tidak ada: 404", async () => {
+    const res = await buatTodo(userA.token, kategoriPalsu, "Tes");
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe("Kategori tidak ditemukan atau bukan milik kamu");
+  });
+
+  test("POST dengan kategori milik user lain: 404", async () => {
+    const kategoriB = await buatKategori(userB.token, "Punya B");
+    const res = await buatTodo(userA.token, kategoriB, "Tes");
+    expect(res.statusCode).toBe(404);
+  });
+
+  test("PATCH dengan kategori yang tidak ada: 404", async () => {
+    const dibuat = await buatTodo(userA.token, kategoriA, "Punya A");
+    const res = await request(app)
+      .patch(`/api/todos/${dibuat.body.data.todo._id}`)
+      .set(auth(userA.token))
+      .send({ category: kategoriPalsu });
+    expect(res.statusCode).toBe(404);
+    expect(res.body.message).toBe("Kategori tidak ditemukan atau bukan milik kamu");
   });
 });
