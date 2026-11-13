@@ -65,7 +65,10 @@ module.exports = {
     description:
       "API manajemen todo (Node.js, Express, MongoDB) dengan autentikasi JWT, otorisasi role admin/user, dan API Key untuk akses mesin ke mesin.",
   },
-  servers: [{ url: "http://localhost:3000", description: "Server lokal" }],
+    servers: [
+    { url: "/", description: "Server saat ini (otomatis, termasuk Vercel)" },
+    { url: "http://localhost:3000", description: "Server lokal" },
+  ],
   tags: [
     { name: "Auth", description: "Registrasi dan login" },
     { name: "Todos", description: "Kelola todo milik pengguna" },
