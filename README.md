@@ -4,8 +4,18 @@ REST API untuk mengelola daftar tugas (todo) yang dibangun dengan **Node.js**, *
 
 Proyek ini dikerjakan sebagai bagian dari program **Web Backend** di Gamelab Indonesia.
 
+## Live URL
+
+| Keterangan | URL |
+|---|---|
+| API | https://gamelab-todo-api-drsj.vercel.app |
+| Dokumentasi Swagger | https://gamelab-todo-api-drsj.vercel.app/api-docs |
+
+API ini di-deploy di **Vercel** dan terhubung ke **MongoDB Atlas**. Untuk mencoba endpoint yang dilindungi, daftar dan login dulu lewat Swagger, lalu klik **Authorize** dan tempel token JWT.
+
 ## Daftar Isi
 
+- [Live URL](#live-url)
 - [Fitur](#fitur)
 - [Teknologi](#teknologi)
 - [Struktur Folder](#struktur-folder)
@@ -19,6 +29,7 @@ Proyek ini dikerjakan sebagai bagian dari program **Web Backend** di Gamelab Ind
 - [Format Response dan Kode Status](#format-response-dan-kode-status)
 - [Keamanan](#keamanan)
 - [Pengujian](#pengujian)
+- [Deployment ke Vercel](#deployment-ke-vercel)
 - [Membuat Akun Admin](#membuat-akun-admin)
 - [Pembuat](#pembuat)
 
@@ -26,7 +37,7 @@ Proyek ini dikerjakan sebagai bagian dari program **Web Backend** di Gamelab Ind
 
 - **Autentikasi JWT**: registrasi dan login, kata sandi disimpan dalam bentuk hash (bcrypt).
 - **Otorisasi role**: akun `user` dan `admin`. Registrasi selalu menghasilkan role `user`.
-- **Manajemen todo**: buat, lihat, ubah, dan hapus todo milik sendiri. Setiap todo terhubung ke pengguna dan kategori.
+- **Manajemen todo**: buat, lihat, ubah, dan hapus (soft delete) todo milik sendiri. Setiap todo terhubung ke pengguna dan kategori. Kategori yang dikirim divalidasi: harus ada dan milik pengguna, jika tidak API menjawab `404`.
 - **Manajemen kategori**: buat, lihat, ubah, dan hapus (soft delete) kategori milik sendiri.
 - **Daftar todo yang lengkap**: pagination, filter (status selesai dan kategori), sorting, dan pencarian.
 - **Activity log**: setiap pembuatan, perubahan, dan penghapusan todo tercatat. Pengguna biasa hanya melihat log miliknya, admin melihat semuanya.
@@ -35,6 +46,7 @@ Proyek ini dikerjakan sebagai bagian dari program **Web Backend** di Gamelab Ind
 - **Penanganan error terpusat** dengan kode status HTTP dan pesan yang informatif.
 - **Pengujian otomatis** dengan Jest dan Supertest (unit dan integration test).
 - **Dokumentasi interaktif** dengan Swagger UI.
+- **Siap di-deploy ke Vercel** (serverless function) dengan database MongoDB Atlas.
 
 ## Teknologi
 
@@ -47,13 +59,16 @@ Proyek ini dikerjakan sebagai bagian dari program **Web Backend** di Gamelab Ind
 | Validasi | express-validator |
 | Dokumentasi | swagger-ui-express (OpenAPI 3) |
 | Pengujian | Jest, Supertest |
-| Pengembangan | nodemon, dotenv |
+| Pengembangan | nodemon, dotenv, cors |
+| Hosting | Vercel (serverless) |
 
 ## Struktur Folder
 
 ```
 .
-├── server.js                      # Titik masuk: koneksi database dan menjalankan server
+├── server.js                      # Titik masuk lokal: koneksi database dan menjalankan server
+├── api/index.js                   # Titik masuk serverless untuk Vercel
+├── vercel.json                    # Konfigurasi routing dan bundling Vercel
 ├── jest.config.js                 # Konfigurasi Jest
 ├── .env.example                   # Contoh environment variable
 ├── postman/                       # Collection dan environment Postman
@@ -104,11 +119,12 @@ Buat file `.env` di folder utama proyek (file ini tidak boleh di-commit).
 
 | Variabel | Wajib | Keterangan | Contoh |
 |---|---|---|---|
-| `PORT` | Tidak | Port server (bawaan `3000`) | `3000` |
+| `PORT` | Tidak | Port server lokal (bawaan `3000`) | `3000` |
 | `MONGODB_URI` | Ya | String koneksi MongoDB | `mongodb+srv://<user>:<password>@<cluster>/<nama-db>` |
 | `JWT_SECRET` | Ya | Kunci rahasia untuk menandatangani token JWT | string acak yang panjang |
 | `JWT_EXPIRES_IN` | Tidak | Masa berlaku token (bawaan `1d`) | `1d` |
 | `API_KEY` | Ya untuk `/api/stats` | Kunci akses endpoint statistik | string acak |
+| `NODE_ENV` | Tidak | `development` menampilkan stack trace pada error, `production` menyembunyikannya | `production` |
 
 Cara membuat nilai acak untuk `JWT_SECRET` dan `API_KEY`:
 
@@ -128,11 +144,12 @@ Server berjalan di `http://localhost:3000`. Jika berhasil, terminal menampilkan 
 
 ## Dokumentasi API
 
-Dokumentasi interaktif tersedia di Swagger UI setelah server berjalan:
+Dokumentasi interaktif tersedia di Swagger UI:
 
-**http://localhost:3000/api-docs**
+- Lokal: **http://localhost:3000/api-docs**
+- Live: **https://gamelab-todo-api-drsj.vercel.app/api-docs**
 
-Di halaman itu semua endpoint dapat dicoba langsung dari browser. Untuk endpoint yang dilindungi, login dulu lewat `POST /api/auth/login`, salin token-nya, klik tombol **Authorize**, lalu tempel token tersebut.
+Di halaman itu semua endpoint dapat dicoba langsung dari browser. Untuk endpoint yang dilindungi, login dulu lewat `POST /api/auth/login`, salin token-nya, klik tombol **Authorize**, lalu tempel token tersebut. Pada dropdown **Servers**, pilih `/` untuk memakai server yang sedang dibuka, atau `http://localhost:3000` untuk server lokal.
 
 Collection Postman beserta pengecekan otomatisnya (57 request, 111 test) tersedia di folder [`postman/`](postman/). Impor kedua file di dalamnya, pilih environment **Todo API - Test Run**, isi variabel `apiKey`, lalu jalankan collection dengan fitur Runner.
 
@@ -145,15 +162,16 @@ Collection Postman beserta pengecekan otomatisnya (57 request, 111 test) tersedi
 | `POST` | `/api/auth/register` | Publik | Daftar akun baru (role selalu `user`) |
 | `POST` | `/api/auth/login` | Publik | Login dan dapatkan token JWT |
 | `GET` | `/api/todos` | Login | Daftar todo milik sendiri (pagination, filter, sorting, search) |
-| `POST` | `/api/todos` | Login | Buat todo baru |
-| `PATCH` | `/api/todos/:id` | Login | Ubah todo milik sendiri |
-| `DELETE` | `/api/todos/:id` | Login | Hapus todo milik sendiri |
+| `POST` | `/api/todos` | Login | Buat todo baru (`404` jika kategori tidak ditemukan) |
+| `PATCH` | `/api/todos/:id` | Login | Ubah todo milik sendiri (`404` jika todo atau kategori tidak ditemukan) |
+| `PUT` | `/api/todos/:id` | Login | Ubah todo milik sendiri (sama seperti `PATCH`) |
+| `DELETE` | `/api/todos/:id` | Login | Hapus todo milik sendiri (soft delete) |
 | `GET` | `/api/categories` | Login | Daftar kategori milik sendiri |
 | `POST` | `/api/categories` | Login | Buat kategori baru |
 | `PUT` | `/api/categories/:id` | Login | Ubah kategori milik sendiri |
 | `DELETE` | `/api/categories/:id` | Login | Hapus kategori (soft delete) |
 | `GET` | `/api/users` | Admin | Daftar semua pengguna |
-| `GET` | `/api/logs` | Login | Activity log (user: milik sendiri, admin: semua) |
+| `GET` | `/api/logs` | Login | Activity log (user: milik sendiri, admin: semua). Alias: `/api/activity-logs` |
 | `GET` | `/api/stats` | API Key | Ringkasan statistik (header `x-api-key`) |
 
 Token JWT dikirim lewat header `Authorization: Bearer <token>`.
@@ -179,7 +197,7 @@ GET /api/todos?completed=false&search=tugas&sort=-created_at&page=1&limit=5
 
 Nilai yang tidak valid ditolak dengan status `400` dan pesan yang jelas, misalnya `page=abc` atau `limit=999`.
 
-`GET /api/logs` menerima `page`, `limit`, dan `action` (`create`, `update`, atau `delete`).
+`GET /api/logs` (atau alias `/api/activity-logs`) menerima `page`, `limit`, dan `action` (`create`, `update`, atau `delete`).
 
 ## Contoh Penggunaan
 
@@ -225,6 +243,15 @@ Content-Type: application/json
   "title": "Belajar Swagger",
   "description": "Menulis dokumentasi API",
   "category": "6ae974bc4ed88a7073550e1c"
+}
+```
+
+Jika `category` tidak ada atau bukan milik pengguna, API menjawab `404`:
+
+```json
+{
+  "success": false,
+  "message": "Kategori tidak ditemukan atau bukan milik kamu"
 }
 ```
 
@@ -293,20 +320,22 @@ Response sukses selalu memiliki `"success": true`, sedangkan error memiliki `"su
 | `400` | Input tidak valid | Judul kosong, ID tidak valid, `page=abc` |
 | `401` | Belum login | Token tidak ada, salah, atau kedaluwarsa; API Key tidak disertakan |
 | `403` | Tidak berhak | User biasa mengakses `/api/users`; API Key salah |
-| `404` | Tidak ditemukan | Route tidak ada, atau data bukan milik pengguna |
+| `404` | Tidak ditemukan | Route tidak ada, data bukan milik pengguna, atau kategori tidak ditemukan |
 | `409` | Konflik | Email sudah terdaftar |
-| `500` | Kesalahan server | Kesalahan tak terduga |
+| `500` | Kesalahan server | Kesalahan tak terduga atau database tidak dapat dihubungi |
 
 ## Keamanan
 
 - Kata sandi di-hash dengan **bcrypt** sebelum disimpan dan tidak pernah dikirim kembali dalam response.
 - Autentikasi memakai **JWT** dengan masa berlaku yang dapat diatur.
 - Data **todo dan kategori hanya dapat diakses pemiliknya**. Mengakses data milik orang lain menghasilkan `404`.
+- Todo hanya dapat dikaitkan ke **kategori milik sendiri**. Kategori yang tidak ada atau milik orang lain ditolak dengan `404`.
 - Pembaruan todo hanya menerima kolom yang diizinkan (`title`, `description`, `completed`, `category`), sehingga kepemilikan tidak bisa dialihkan lewat request.
 - Role `admin` tidak bisa didapat lewat registrasi.
 - Endpoint statistik dilindungi **API Key** yang dibandingkan dengan teknik yang aman terhadap serangan waktu (timing attack).
 - Pencarian memakai teks yang di-escape, sehingga tidak rentan terhadap injeksi regular expression.
 - Seluruh input divalidasi sebelum diproses.
+- Penghapusan todo dan kategori memakai **soft delete** (`archived: true`), sehingga data tidak hilang permanen dan riwayatnya tetap terjaga.
 - File `.env` dikecualikan dari Git. Gunakan `.env.example` sebagai acuan.
 
 ## Pengujian
@@ -320,12 +349,26 @@ npm test
 | Jenis | Berkas | Cakupan |
 |---|---|---|
 | Integration | `tests/auth.test.js` | registrasi, login, validasi, email duplikat |
-| Integration | `tests/todo.test.js` | CRUD todo, pagination, filter, sorting, search, validasi query, kepemilikan data, activity log |
+| Integration | `tests/todo.test.js` | CRUD todo, pagination, filter, sorting, search, validasi query, kepemilikan data, validasi kategori, soft delete, activity log |
 | Integration | `tests/stats.test.js` | endpoint statistik dan API Key |
 | Integration | `tests/app.test.js` | server hidup dan route tidak ditemukan |
 | Unit | `tests/unit/middlewares.test.js` | `AppError`, `catchAsync`, `restrictTo`, middleware API Key |
 
 Seluruhnya terdiri dari **45 test**. Semua test memakai **database terpisah bernama `todo_api_test`** pada cluster yang sama dengan `MONGODB_URI`, dan database itu dihapus setelah pengujian selesai, sehingga data asli tidak tersentuh. Test akan berhenti dengan error jika koneksi ternyata bukan ke database test.
+
+## Deployment ke Vercel
+
+Aplikasi ini berjalan di Vercel sebagai **serverless function**. File `api/index.js` mengekspor aplikasi Express sebagai handler (koneksi MongoDB di-cache antar-request), dan `vercel.json` mengarahkan semua URL ke handler tersebut.
+
+Langkah singkat:
+
+1. Pastikan kode sudah ter-push ke GitHub.
+2. Di **MongoDB Atlas**, buka **Network Access**, tambahkan `0.0.0.0/0` (Allow Access from Anywhere) dan tunggu statusnya **Active**. Ini wajib karena alamat IP Vercel berubah-ubah.
+3. Di [vercel.com](https://vercel.com), pilih **Add New**, **Project**, lalu impor repository ini. Biarkan **Root Directory** pada nilai bawaan.
+4. Isi **Environment Variables**: `MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `API_KEY`, dan `NODE_ENV=production`.
+5. Klik **Deploy**. Setiap `git push` ke branch utama akan men-deploy ulang secara otomatis.
+
+Jika perubahan Environment Variables dilakukan setelah deploy, lakukan **Redeploy** dari tab **Deployments** agar nilainya terbaca.
 
 ## Membuat Akun Admin
 
